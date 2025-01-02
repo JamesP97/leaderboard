@@ -1,42 +1,36 @@
 services:
-  php:
+  app:
     build:
       context: .
-      target: development
-    ports:
-      - "9000:80"
-    depends_on:
-      db:
-        condition: service_healthy
-    secrets:
-      - db-password
-    environment:
-      - PASSWORD_FILE_PATH=/run/secrets/db-password
-      - DB_HOST=db
-      - DB_NAME=example
-      - DB_USER=root
-    develop:
-      watch:
-        - action: sync
-          path: ./src
-          target: /var/www/html
-    networks:
-      - leaderboard
-
-  webserver:
-    image: nginx:stable-alpine
-    depends_on:
-      - php
+    container_name: php-app
     volumes:
-      - ./src/public:/var/www/public
-      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./src:/var/www/html
+#      - ./php/php.ini:/usr/local/etc/php/php.ini
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-server
     ports:
       - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/conf.d/nginx.conf:/etc/nginx/conf.d/default.conf
     networks:
-      - leaderboard
+      - app-network
+
+  composer:
+    image: composer:latest
+    container_name: composer
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    entrypoint: ["composer"]
 
   db:
     image: mariadb
+    container_name: db
     restart: always
     user: root
     secrets:
@@ -61,7 +55,11 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - leaderboard
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   db-data:
@@ -69,7 +67,3 @@ volumes:
 secrets:
   db-password:
     file: db/password.txt
-
-networks:
-  leaderboard:
-    driver: bridge
