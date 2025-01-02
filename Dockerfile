@@ -14,7 +14,7 @@ RUN --mount=type=bind,source=./composer.json,target=composer.json \
     --mount=type=cache,target=/tmp/cache \
     composer install --no-interaction
 
-FROM php:8.4-apache as base
+FROM php:8.4-fpm as base
 RUN docker-php-ext-install pdo pdo_mysql
 COPY ./src /var/www/html
 

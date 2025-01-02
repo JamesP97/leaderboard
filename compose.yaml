@@ -1,5 +1,5 @@
 services:
-  server:
+  php:
     build:
       context: .
       target: development
@@ -20,6 +20,21 @@ services:
         - action: sync
           path: ./src
           target: /var/www/html
+    networks:
+      - leaderboard
+
+  webserver:
+    image: nginx:stable-alpine
+    depends_on:
+      - php
+    volumes:
+      - ./src/public:/var/www/public
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    ports:
+      - "8080:80"
+    networks:
+      - leaderboard
+
   db:
     image: mariadb
     restart: always
@@ -45,8 +60,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - leaderboard
+
 volumes:
   db-data:
+
 secrets:
   db-password:
     file: db/password.txt
+
+networks:
+  leaderboard:
+    driver: bridge
